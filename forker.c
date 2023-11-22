@@ -1,0 +1,111 @@
+/*
+ * Forker - Linux Command Line Forking Tool
+ *
+ * Author: fuggles-5555
+ *
+ * Description:
+ *   Forker is a command-line tool designed for parallel execution of commands on Linux.
+ *   Users can supply a file containing a list of commands as the first argument and
+ *   specify the maximum number of threads for concurrent execution as the second argument.
+ *
+ * Compilation:
+ *   gcc forker.c -o forker
+ *
+ * Usage:
+ *   ./forker <command_file> <max_threads>
+ *
+ * Example:
+ *   ./forker commands.txt 4
+ *
+ * For more information and updates, visit: https://github.com/fuggles-5555/forker
+*/
+
+// libraries
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
+
+// constants
+#define MAX_COMMAND_LENGTH 256
+#define MAX_THREADS 100
+
+// execute function
+void executeCommand(const char *command) {
+    system(command);
+}
+
+// main function
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <cmdFile> <threads>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    // sort out the cmdFile
+    const char *cmdFile = argv[1];
+    FILE *cmdFilePtr = fopen(cmdFile, "r");
+    if (!cmdFilePtr) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+    
+    // sort out the threadCount
+    int threadCount = atoi(argv[2]);
+    if (threadCount <= 0 || threadCount > MAX_THREADS) {
+        fprintf(stderr, "Invalid thread count. It should be between 1 and %d.\n", MAX_THREADS);
+        exit(EXIT_FAILURE);
+    }
+
+    // declare other variables
+    char command[MAX_COMMAND_LENGTH];
+    int activeThreads = 0;
+
+    // main loop
+    while (fgets(command, MAX_COMMAND_LENGTH, cmdFilePtr) != NULL) {
+        // remove the trailing newline character from the command
+        size_t len = strlen(command);
+        if (len > 0 && command[len - 1] == '\n') {
+            command[len - 1] = '\0';
+        }
+
+        // fork a child process
+        pid_t pid = fork();
+        
+        // parent and child processes clone (sort of) and run from here
+        // child has a pid of 0 and parent takes the child process pid
+        fprintf(stdout,"PID: %d Executing %s", pid,command);
+
+        // error forking
+        if (pid == -1) {
+            perror("Error forking process");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            // child process
+            executeCommand(command);
+            exit(EXIT_SUCCESS);
+        } else {
+            // parent process
+            activeThreads++;
+
+            // wait for a child process to complete when the thread count is reached
+            if (activeThreads >= threadCount) {
+                int status;
+                wait(&status);
+                activeThreads--;
+            }
+        }
+    }
+
+    // wait for all remaining child processes to complete
+    while (activeThreads > 0) {
+        int status;
+        wait(&status);
+        activeThreads--;
+    }
+
+    fclose(cmdFilePtr);
+    return 0;
+}
+
