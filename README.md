@@ -1,5 +1,3 @@
-## Commit Message
-
 ### Summary
 
 A tool to enable parallel command execution based on input file which contains a list of commands and thread limit.
