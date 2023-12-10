@@ -71,7 +71,6 @@ int main(int argc, char *argv[]) {
         if (len > 0 && command[len - 1] == '\n') {
             command[len - 1] = '\0';
         }
-        //fprintf(stdout, "Command to run: %s\n", command);
         
         // fork a child process
         pid_t pid = fork();
@@ -85,20 +84,15 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
             // child process
-            //fprintf(stdout,"Child PID: %d Executing %s\n", pid,command);
             executeCommand(command);
-            //fprintf(stdout,"Child Cmd: %s Exiting\n", command);
             _exit(EXIT_SUCCESS);
         } else {
             // parent process
             activeThreads++;
-            //fprintf(stdout, "Thread count = %d\n", activeThreads);
             // wait for a child process to complete when the thread count is reached
             if (activeThreads >= threadCount) {
                 int status = 0;
-                //fprintf(stdout, "Waiting for a child to return\n");
                 wait(&status);
-                //fprintf(stdout, "Child returned\n");
                 activeThreads--;
             }
         }
@@ -107,9 +101,7 @@ int main(int argc, char *argv[]) {
     // wait for all remaining child processes to complete
     while (activeThreads > 0) {
         int status = 0;
-        //fprintf(stdout, "Thread count = %d\nPre-Exit\n", activeThreads);
         wait(&status);
-        //fprintf(stdout, "Thread count = %d\nAbout to Exit\n", activeThreads);
         activeThreads--;
     }
     
